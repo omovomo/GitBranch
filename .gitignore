@@ -1,0 +1,31 @@
+#Artefacts
+/_build/vc/_output
+/build-x64
+/build-Win32
+/out
+Debug.*.vc*
+Release.*.vc*
+Debug.*.gcc
+Release.*.gcc
+final.*.vc*
+final.*.gcc*
+
+# VS
+.vs
+ipch
+*.db
+*.opendb
+*.vcxproj.user
+*.suo
+CMakeSettings.json
+
+#InteliJ
+/.idea
+/*.iml
+
+# Build scripts
+__*.cmd
+
+#logs
+/src/*.log
+logs
