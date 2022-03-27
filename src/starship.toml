@@ -50,7 +50,7 @@ format = '\([$state( $progress_current/$progress_total)]($style)\) '
 disabled = false
 
 [git_status] 
-format = '(\[($ahead_behind )($conflicted )($untracked$deleted$modified)($renamed$staged)($stashed)\] )'
+format = '(\[($ahead_behind)($conflicted)($untracked$deleted$modified)($renamed$staged)($stashed)\] )'
 conflicted = "[!${count}](none)"
 ahead = "[${count}](none)"
 behind = "[${count}](none)"

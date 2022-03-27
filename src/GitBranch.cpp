@@ -137,8 +137,13 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
 
       std::filesystem::path git_dir = directory;
 
-      auto cmdres_git = raymii::Command::exec("starship prompt -p " + git_dir.string());
-      auto cmdres_dir = raymii::Command::exec("starship module directory -p " + git_dir.string());
+      auto git_dir_str = git_dir.string();
+      if(git_dir_str.find_first_of(' ') != std::string::npos){
+        git_dir_str = "\"" + git_dir_str + "\"";
+      }
+
+      auto cmdres_git = raymii::Command::exec("starship prompt -p " + git_dir_str);
+      auto cmdres_dir = raymii::Command::exec("starship module directory -p " + git_dir_str);
       std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
       sh_git = converter.from_bytes(cmdres_git.output);
       sh_dir = converter.from_bytes(cmdres_dir.output);
