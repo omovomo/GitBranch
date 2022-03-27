@@ -113,7 +113,7 @@ void Run() {
   spdlog::info("Plugin thread exit, [Running: {}]", Running.load());
 }
 
-std::wstring GetEnvVar();
+std::vector<std::wstring> GetEnvVars();
 bool Timeout();
 
 intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
@@ -131,7 +131,7 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
   }
 
   if (PreviousDir != directory || Timeout()) {
-    std::wstring sh_git,sh_dir;
+    std::vector<std::wstring> sh_vars;
 
     if (!directory.empty()) {
 
@@ -145,16 +145,16 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
       auto cmdres_git = raymii::Command::exec("starship prompt -p " + git_dir_str);
       auto cmdres_dir = raymii::Command::exec("starship module directory -p " + git_dir_str);
       std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-      sh_git = converter.from_bytes(cmdres_git.output);
-      sh_dir = converter.from_bytes(cmdres_dir.output);
+      sh_vars.emplace_back(converter.from_bytes(cmdres_dir.output));
+      sh_vars.emplace_back(converter.from_bytes(cmdres_git.output));
     }
 
     PreviousDir = directory;
     PreviousUpdateTimePoint = std::chrono::steady_clock::now();
 
-    if (GetEnvVar() != sh_dir) {
-      SetEnvironmentVariableW(EnvVarDIR, sh_dir.c_str());
-      SetEnvironmentVariableW(EnvVarGIT, sh_git.c_str());
+    if (GetEnvVars() != sh_vars) {
+      SetEnvironmentVariableW(EnvVarDIR, sh_vars[0].c_str());
+      SetEnvironmentVariableW(EnvVarGIT, sh_vars[1].c_str());
       PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
     }
   }
@@ -166,7 +166,8 @@ bool Timeout() {
   return std::chrono::steady_clock::now() - PreviousUpdateTimePoint > ForceUpdateTimeout;
 }
 
-std::wstring GetEnvVar() {
+std::vector<std::wstring> GetEnvVars() {
   wchar_t buf[1024];
-  return {buf, GetEnvironmentVariableW(EnvVarDIR, buf, 1024)};
+  return {{buf, GetEnvironmentVariableW(EnvVarDIR, buf, 1024)},
+          {buf, GetEnvironmentVariableW(EnvVarGIT, buf, 1024)}};
 }
