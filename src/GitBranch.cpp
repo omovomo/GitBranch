@@ -113,7 +113,7 @@ void Run() {
   spdlog::info("Plugin thread exit, [Running: {}]", Running.load());
 }
 
-std::vector<std::wstring> GetEnvVars();
+std::wstring GetEnvVars();
 bool Timeout();
 
 intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
@@ -131,30 +131,23 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
   }
 
   if (PreviousDir != directory || Timeout()) {
-    std::vector<std::wstring> sh_vars;
-
+    std::wstring sh_vars;
     if (!directory.empty()) {
-
       std::filesystem::path git_dir = directory;
-
       auto git_dir_str = git_dir.string();
       if(git_dir_str.find_first_of(' ') != std::string::npos){
         git_dir_str = "\"" + git_dir_str + "\"";
       }
-
-      auto cmdres_git = raymii::Command::exec("starship prompt -p " + git_dir_str);
-      auto cmdres_dir = raymii::Command::exec("starship module directory -p " + git_dir_str);
+      auto cmdres = raymii::Command::exec("starship prompt -p " + git_dir_str);
       std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-      sh_vars.emplace_back(converter.from_bytes(cmdres_dir.output));
-      sh_vars.emplace_back(converter.from_bytes(cmdres_git.output));
+      sh_vars = converter.from_bytes(cmdres.output);
     }
-
     PreviousDir = directory;
     PreviousUpdateTimePoint = std::chrono::steady_clock::now();
-
     if (GetEnvVars() != sh_vars) {
-      SetEnvironmentVariableW(EnvVarDIR, sh_vars[0].c_str());
-      SetEnvironmentVariableW(EnvVarGIT, sh_vars[1].c_str());
+      auto delim_pos = sh_vars.find_first_of(L"|");
+      SetEnvironmentVariableW(EnvVarDIR, sh_vars.substr(0, delim_pos).c_str());
+      SetEnvironmentVariableW(EnvVarGIT, sh_vars.substr(delim_pos + 1, sh_vars.size() - delim_pos - 1).c_str());
       PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
     }
   }
@@ -166,8 +159,8 @@ bool Timeout() {
   return std::chrono::steady_clock::now() - PreviousUpdateTimePoint > ForceUpdateTimeout;
 }
 
-std::vector<std::wstring> GetEnvVars() {
+std::wstring GetEnvVars() {
   wchar_t buf[1024];
-  return {{buf, GetEnvironmentVariableW(EnvVarDIR, buf, 1024)},
-          {buf, GetEnvironmentVariableW(EnvVarGIT, buf, 1024)}};
+  return std::wstring{buf, GetEnvironmentVariableW(EnvVarDIR, buf, 1024)} + L"|" +
+         std::wstring{buf, GetEnvironmentVariableW(EnvVarGIT, buf, 1024)};
 }
