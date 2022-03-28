@@ -10,7 +10,11 @@ add_library(gitbranch MODULE
     starship.toml)
 
 target_link_libraries(gitbranch PRIVATE spdlog::spdlog_header_only far)
-target_compile_definitions(gitbranch PRIVATE PLUGIN_BUILD=${PROJECT_VERSION_PATCH})
+target_compile_definitions(gitbranch 
+    PRIVATE PLUGIN_MAJOR=${PROJECT_VERSION_MAJOR}
+    PRIVATE PLUGIN_MINOR=${PROJECT_VERSION_MINOR}
+    PRIVATE PLUGIN_BUILD=${PROJECT_VERSION_PATCH}
+    PRIVATE PLUGIN_REVISION=${PROJECT_VERSION_TWEAK})
 
 
 set_property(

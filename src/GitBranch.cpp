@@ -146,9 +146,11 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
     PreviousUpdateTimePoint = std::chrono::steady_clock::now();
     if (GetEnvVars() != sh_vars) {
       auto delim_pos = sh_vars.find_first_of(L"|");
-      SetEnvironmentVariableW(EnvVarDIR, sh_vars.substr(0, delim_pos).c_str());
-      SetEnvironmentVariableW(EnvVarGIT, sh_vars.substr(delim_pos + 1, sh_vars.size() - delim_pos - 1).c_str());
-      PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
+      if(delim_pos != std::wstring::npos){
+        SetEnvironmentVariableW(EnvVarDIR, sh_vars.substr(0, delim_pos).c_str());
+        SetEnvironmentVariableW(EnvVarGIT, sh_vars.substr(delim_pos + 1, sh_vars.size() - delim_pos - 1).c_str());
+        PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
+      }
     }
   }
 

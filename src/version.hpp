@@ -1,10 +1,11 @@
 #include "farversion.hpp"
 
-// PLUGIN_BUILD is defined on compiler command line. Set version number in CMakeLists.txt
-// project(gitbranch VERSION x.y.Z) where Z is value for PLUGIN_BUILD
-
 #define PLUGIN_DESC L"Show git info at command propmt"
 #define PLUGIN_NAME L"GitInfo"
 #define PLUGIN_FILENAME L"gitbranch.dll"
-#define PLUGIN_AUTHOR L"smithx"
-#define PLUGIN_VERSION MAKEFARVERSION(FARMANAGERVERSION_MAJOR,FARMANAGERVERSION_MINOR,FARMANAGERVERSION_REVISION,PLUGIN_BUILD,VS_RELEASE)
+#define PLUGIN_AUTHOR L"V.Matyukha"
+#define PLUGIN_COPYRIGHT_INITIAL L"© V.Matyukha, 2022-2022."
+#define PLUGIN_COPYRIGHT_CURRENT_FROM 2000
+
+#define PLUGIN_VERSION MAKEFARVERSION(PLUGIN_MAJOR,PLUGIN_MINOR,PLUGIN_BUILD,PLUGIN_REVISION,VS_RELEASE)
+
