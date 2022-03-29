@@ -18,10 +18,21 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <ranges>
+#include <string_view>
 
 constexpr wchar_t EnvVarDIR[] = L"SH_DIR";
 constexpr wchar_t EnvVarGIT[] = L"SH_GIT";
 constexpr wchar_t EnvVarStarship[] = L"STARSHIP_CONFIG";
+
+constexpr size_t vars_cnt = 5; 
+static const wchar_t* sh_env_vars[vars_cnt]{ 
+          L"SH_DIR", 
+          L"SH_G_BRANCH", 
+          L"SH_G_COMMIT",
+          L"SH_G_STATE",
+          L"SH_G_STATUS"
+      };
 
 std::chrono::milliseconds SynchroFarRequestTimeout{333};
 std::chrono::seconds ForceUpdateTimeout{5};
@@ -37,6 +48,7 @@ std::condition_variable PauseVariable;
 std::thread Thread;
 
 std::wstring PreviousDir;
+std::wstring PreviousPrompt;
 std::chrono::time_point<std::chrono::steady_clock> PreviousUpdateTimePoint =
     std::chrono::steady_clock::now();
 
@@ -70,8 +82,9 @@ void WINAPI SetStartupInfoW(const PluginStartupInfo *psi) {
   PSI.FSF = &FSF;
   Heap = GetProcessHeap();
 
-  SetEnvironmentVariableW(EnvVarGIT, L"");
-  SetEnvironmentVariableW(EnvVarDIR, L"");
+  for(size_t i = 0; i < vars_cnt; i++){
+      SetEnvironmentVariableW(sh_env_vars[i], L"");
+  }
 
   std::filesystem::path sh_config = PSI.ModuleName;
   sh_config.remove_filename();
@@ -113,7 +126,6 @@ void Run() {
   spdlog::info("Plugin thread exit, [Running: {}]", Running.load());
 }
 
-std::wstring GetEnvVars();
 bool Timeout();
 
 intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
@@ -132,6 +144,7 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
 
   if (PreviousDir != directory || Timeout()) {
     std::wstring sh_vars;
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     if (!directory.empty()) {
       std::filesystem::path git_dir = directory;
       auto git_dir_str = git_dir.string();
@@ -139,18 +152,25 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
         git_dir_str = "\"" + git_dir_str + "\"";
       }
       auto cmdres = raymii::Command::exec("starship prompt -p " + git_dir_str);
-      std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
       sh_vars = converter.from_bytes(cmdres.output);
     }
     PreviousDir = directory;
     PreviousUpdateTimePoint = std::chrono::steady_clock::now();
-    if (GetEnvVars() != sh_vars) {
-      auto delim_pos = sh_vars.find_first_of(L"|");
-      if(delim_pos != std::wstring::npos){
-        SetEnvironmentVariableW(EnvVarDIR, sh_vars.substr(0, delim_pos).c_str());
-        SetEnvironmentVariableW(EnvVarGIT, sh_vars.substr(delim_pos + 1, sh_vars.size() - delim_pos - 1).c_str());
-        PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
+    if (PreviousPrompt != sh_vars) {
+      for(size_t i = 0; i < vars_cnt; i++){
+          SetEnvironmentVariableW(sh_env_vars[i], L"");
       }
+      PreviousPrompt = sh_vars;
+      size_t i = 0;
+      wchar_t* buffer;
+      wchar_t* token = std::wcstok(sh_vars.data(), L"|", &buffer);
+      while (token) {
+        if(i < vars_cnt) {
+          SetEnvironmentVariableW(sh_env_vars[i++], token+1);
+        }  
+        token = std::wcstok(nullptr, L"|", &buffer);
+      }
+      PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
     }
   }
 
@@ -159,10 +179,4 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
 
 bool Timeout() {
   return std::chrono::steady_clock::now() - PreviousUpdateTimePoint > ForceUpdateTimeout;
-}
-
-std::wstring GetEnvVars() {
-  wchar_t buf[1024];
-  return std::wstring{buf, GetEnvironmentVariableW(EnvVarDIR, buf, 1024)} + L"|" +
-         std::wstring{buf, GetEnvironmentVariableW(EnvVarGIT, buf, 1024)};
 }

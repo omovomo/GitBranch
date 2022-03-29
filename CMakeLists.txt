@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 
 project(gitbranch VERSION 1.0.1.22)
 
-add_compile_options(/MP /std:c++17)
+add_compile_options(/MP /std:c++latest)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
