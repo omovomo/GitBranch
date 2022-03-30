@@ -23,6 +23,8 @@
 
 
 constexpr wchar_t EnvVarStarship[] = L"STARSHIP_CONFIG";
+std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+static std::unordered_set<std::wstring> var_names;
 
 std::chrono::milliseconds SynchroFarRequestTimeout{333};
 std::chrono::seconds ForceUpdateTimeout{5};
@@ -77,6 +79,20 @@ void WINAPI SetStartupInfoW(const PluginStartupInfo *psi) {
   sh_config /= "starship.toml";
   SetEnvironmentVariableW(EnvVarStarship, sh_config.wstring().c_str());
 
+  auto cmdres = raymii::Command::exec("starship prompt");
+  auto sh_vars = converter.from_bytes(cmdres.output);
+
+  const std::wregex re_entry {L"\\s*(.+?)\\s*=.*"};
+   
+  std::wsregex_token_iterator pos(sh_vars.cbegin(),sh_vars.cend(), re_entry, 1);
+  std::wsregex_token_iterator end;
+  for ( ; pos!=end ; ++pos ) {
+     auto cur_var_name = pos->str();
+     SetEnvironmentVariableW(cur_var_name.c_str(), L"");
+     var_names.insert(cur_var_name);
+  }
+ 
+
   Thread = std::thread(Run);
 
   spdlog::info("SetStartupInfoW: exit");
@@ -130,7 +146,6 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
 
   if (PreviousDir != directory || Timeout()) {
     std::wstring sh_vars;
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     if (!directory.empty()) {
       std::filesystem::path git_dir = directory;
       auto git_dir_str = git_dir.string();
@@ -144,11 +159,9 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
     PreviousUpdateTimePoint = std::chrono::steady_clock::now();
     if (PreviousPrompt != sh_vars) {
       PreviousPrompt = sh_vars;
-      static std::unordered_set<std::wstring> var_names;
       for(auto const&name: var_names){
         SetEnvironmentVariableW(name.c_str(), L"");      
       }
-
       bool name_present{true};
       std::wstring cur_var_name;
       const std::wregex re_entry {L"\\s*(.+?)\\s*=(.+)"};
@@ -158,17 +171,16 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
       for ( ; pos!=end ; ++pos ) {
         if(name_present){
           cur_var_name = pos->str();
+          var_names.insert(cur_var_name);
           name_present = false;
         } else {
           SetEnvironmentVariableW(cur_var_name.c_str(), pos->str().c_str());
-          var_names.insert(cur_var_name);
           name_present = true;
         }
       }
       PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
     }
   }
-
   return 0;
 }
 
