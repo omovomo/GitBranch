@@ -3,11 +3,11 @@
 add_newline = false
 
 format = """
-x${directory}|x\
-${git_branch}|x\
-${git_commit}|x\
-${git_state}|x\
-$git_status"""
+SH_DIR=${directory}
+SH_G_BRANCH=${git_branch}
+SH_G_COMMIT=${git_commit}
+SH_G_STATE=${git_state}
+SH_G_STATUS=${git_status}"""
 
 [directory]
 format = '[($read_only)]($read_only_style)[$path]($style)'

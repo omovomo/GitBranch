@@ -18,21 +18,11 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <ranges>
-#include <string_view>
+#include <unordered_set>
+#include <regex>
 
-constexpr wchar_t EnvVarDIR[] = L"SH_DIR";
-constexpr wchar_t EnvVarGIT[] = L"SH_GIT";
+
 constexpr wchar_t EnvVarStarship[] = L"STARSHIP_CONFIG";
-
-constexpr size_t vars_cnt = 5; 
-static const wchar_t* sh_env_vars[vars_cnt]{ 
-          L"SH_DIR", 
-          L"SH_G_BRANCH", 
-          L"SH_G_COMMIT",
-          L"SH_G_STATE",
-          L"SH_G_STATUS"
-      };
 
 std::chrono::milliseconds SynchroFarRequestTimeout{333};
 std::chrono::seconds ForceUpdateTimeout{5};
@@ -81,10 +71,6 @@ void WINAPI SetStartupInfoW(const PluginStartupInfo *psi) {
   FSF = *psi->FSF;
   PSI.FSF = &FSF;
   Heap = GetProcessHeap();
-
-  for(size_t i = 0; i < vars_cnt; i++){
-      SetEnvironmentVariableW(sh_env_vars[i], L"");
-  }
 
   std::filesystem::path sh_config = PSI.ModuleName;
   sh_config.remove_filename();
@@ -157,18 +143,27 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
     PreviousDir = directory;
     PreviousUpdateTimePoint = std::chrono::steady_clock::now();
     if (PreviousPrompt != sh_vars) {
-      for(size_t i = 0; i < vars_cnt; i++){
-          SetEnvironmentVariableW(sh_env_vars[i], L"");
-      }
       PreviousPrompt = sh_vars;
-      size_t i = 0;
-      wchar_t* buffer;
-      wchar_t* token = std::wcstok(sh_vars.data(), L"|", &buffer);
-      while (token) {
-        if(i < vars_cnt) {
-          SetEnvironmentVariableW(sh_env_vars[i++], token+1);
-        }  
-        token = std::wcstok(nullptr, L"|", &buffer);
+      static std::unordered_set<std::wstring> var_names;
+      for(auto const&name: var_names){
+        SetEnvironmentVariableW(name.c_str(), L"");      
+      }
+
+      bool name_present{true};
+      std::wstring cur_var_name;
+      const std::wregex re_entry {L"\\s*(.+?)\\s*=(.+)"};
+   
+      std::wsregex_token_iterator pos(sh_vars.cbegin(),sh_vars.cend(), re_entry, {1,2});
+      std::wsregex_token_iterator end;
+      for ( ; pos!=end ; ++pos ) {
+        if(name_present){
+          cur_var_name = pos->str();
+          name_present = false;
+        } else {
+          SetEnvironmentVariableW(cur_var_name.c_str(), pos->str().c_str());
+          var_names.insert(cur_var_name);
+          name_present = true;
+        }
       }
       PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
     }
