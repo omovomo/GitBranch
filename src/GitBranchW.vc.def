@@ -6,4 +6,5 @@ EXPORTS
   GetPluginInfoW
   OpenW
   ProcessSynchroEventW
+  ProcessConsoleInputW
   ExitFARW

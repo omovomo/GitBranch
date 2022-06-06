@@ -44,6 +44,9 @@ std::wstring PreviousPrompt;
 std::chrono::time_point<std::chrono::steady_clock> PreviousUpdateTimePoint =
     std::chrono::steady_clock::now();
 
+std::chrono::time_point<std::chrono::steady_clock> EnterProcessingStartTimePoint;    
+std::chrono::milliseconds EnterProcessingDuration;
+
 void WINAPI GetGlobalInfoW(struct GlobalInfo *Info) {
   Info->StructSize = sizeof(struct GlobalInfo);
   Info->MinFarVersion = MAKEFARVERSION(FARMANAGERVERSION_MAJOR, FARMANAGERVERSION_MINOR,
@@ -130,6 +133,38 @@ void Run() {
 
 bool Timeout();
 
+
+intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
+ 	// const char *flags[] = {"PCIF_FROMMAIN",
+  //                         "PCIF_NONE"};
+
+ 	// const char *event_types[] = {"KEY_EVENT",
+  //                              "MOUSE_EVENT",
+  //                              "WINDOW_BUFFER_SIZE_EVENT",
+  //                              "MENU_EVENT",
+  //                              "FOCUS_EVENT"};
+
+  static bool enter_processed = false;
+
+  if(KEY_EVENT == Info->Rec.EventType){
+    switch (Info->Rec.Event.KeyEvent.wVirtualKeyCode)
+    {
+    case VK_RETURN:
+//      spdlog::info("ProcessConsoleInputW: ********** ENTER **********");
+      enter_processed = true;
+      EnterProcessingStartTimePoint = std::chrono::steady_clock::now();
+      return 0;
+    }
+  }
+  if(enter_processed) {
+    EnterProcessingDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - EnterProcessingStartTimePoint);
+    enter_processed = false;
+    PreviousUpdateTimePoint = std::chrono::steady_clock::now() - ForceUpdateTimeout;
+  }
+//  spdlog::info("ProcessConsoleInputW: {}",  event_types[Info->Rec.EventType]);
+	return 0;
+}
+
 intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
   //Get current directory
   std::wstring directory;
@@ -152,7 +187,7 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
       if(git_dir_str.find_first_of(' ') != std::string::npos){
         git_dir_str = "\"" + git_dir_str + "\"";
       }
-      auto cmdres = raymii::Command::exec("starship prompt -p " + git_dir_str);
+      auto cmdres = raymii::Command::exec(fmt::format("starship prompt --cmd-duration={} -p {}", EnterProcessingDuration.count(), git_dir_str));
       sh_vars = converter.from_bytes(cmdres.output);
     }
     PreviousDir = directory;

@@ -7,25 +7,26 @@ SH_DIR=${directory}
 SH_G_BRANCH=${git_branch}
 SH_G_COMMIT=${git_commit}
 SH_G_STATE=${git_state}
-SH_G_STATUS=${git_status}"""
+SH_G_STATUS=${git_status}
+SH_CMD_DURATION=${cmd_duration}"""
 
 [directory]
-format = '[($read_only)]($read_only_style)[$path]($style)'
-read_only	= " "
+format = '[($read_only)]($read_only_style)'
+#format = '[($read_only)]($read_only_style)[$path]($style)'
 truncate_to_repo = true
 truncation_length = 0
-truncation_symbol = " "
-fish_style_pwd_dir_length = 0
-use_logical_path = false
-style	= "none"
+repo_root_format = "[$repo_root]($style)"
+read_only	= " "
+truncation_symbol = "…/"
+repo_root_style = "none"
+style = "none"
 read_only_style	= "none"
 
 [git_branch]
-always_show_remote = true  #Shows the remote tracking branch name, even if it is equal to the local branch name. default false
+always_show_remote = false  #Shows the remote tracking branch name, even if it is equal to the local branch name. default false
 format = "[ ($symbol$branch)(,${remote_name}/${remote_branch})]($style)"
 symbol = ""
 style	= "none"
-truncation_length = "2^63 - 1"
 truncation_symbol = "…"
 only_attached =	false #Only show the branch name when not in a detached HEAD state. default false
 disabled = false
@@ -65,3 +66,10 @@ renamed = "[>${count}](none)"
 deleted = "[-${count}](none)"
 disabled = false
 
+[cmd_duration]
+min_time = 500
+style	= "none"
+format = "[( 祥$duration)]($style)"
+show_milliseconds = true
+#show_notifications = true
+#min_time_to_notify = 2000
