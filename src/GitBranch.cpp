@@ -44,6 +44,7 @@ std::wstring PreviousPrompt;
 std::chrono::time_point<std::chrono::steady_clock> PreviousUpdateTimePoint =
     std::chrono::steady_clock::now();
 
+bool enter_processed{false};
 std::chrono::time_point<std::chrono::steady_clock> EnterProcessingStartTimePoint;    
 std::chrono::milliseconds EnterProcessingDuration;
 
@@ -144,13 +145,11 @@ intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
   //                              "MENU_EVENT",
   //                              "FOCUS_EVENT"};
 
-  static bool enter_processed = false;
-
   if(KEY_EVENT == Info->Rec.EventType){
     switch (Info->Rec.Event.KeyEvent.wVirtualKeyCode)
     {
     case VK_RETURN:
-//      spdlog::info("ProcessConsoleInputW: ********** ENTER **********");
+      spdlog::info("ProcessConsoleInputW: CMD Processing START...");
       enter_processed = true;
       EnterProcessingStartTimePoint = std::chrono::steady_clock::now();
       return 0;
@@ -160,8 +159,8 @@ intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
     EnterProcessingDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - EnterProcessingStartTimePoint);
     enter_processed = false;
     PreviousUpdateTimePoint = std::chrono::steady_clock::now() - ForceUpdateTimeout;
+    spdlog::info("ProcessConsoleInputW: CMD Processing END duration:{}ms",  EnterProcessingDuration.count());
   }
-//  spdlog::info("ProcessConsoleInputW: {}",  event_types[Info->Rec.EventType]);
 	return 0;
 }
 
@@ -177,6 +176,10 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
       }
       HeapFree(Heap, 0, pd);
     }
+  }
+
+  if(enter_processed) {
+    spdlog::info("ProcessSynchroEventW: CMD Processing END duration:{}ms",  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - EnterProcessingStartTimePoint).count());
   }
 
   if (PreviousDir != directory || Timeout()) {

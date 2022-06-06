@@ -1,0 +1,14 @@
+{
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+
+  "cmake.configureSettings": {
+    "CMAKE_TOOLCHAIN_FILE": "d:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+    "CMAKE_INSTALL_PREFIX": "${command:cmake.buildDirectory}/_install",
+
+  },
+  "files.associations": {
+    "*.log.*": "log",
+    "*.mrules": "plaintext",
+    "chrono": "cpp"
+  }
+}
