@@ -24,7 +24,7 @@ read_only_style	= "none"
 
 [git_branch]
 always_show_remote = false  #Shows the remote tracking branch name, even if it is equal to the local branch name. default false
-format = "[ ($symbol$branch)(,${remote_name}/${remote_branch})]($style)"
+format = "[ ($symbol$branch)(,${remote_name}/${remote_branch})]($style)"
 symbol = ""
 style	= "none"
 truncation_symbol = "…"
@@ -32,7 +32,7 @@ only_attached =	false #Only show the branch name when not in a detached HEAD sta
 disabled = false
 
 [git_commit]
-format = "[( $tag)]($style)"  #$hash
+format = "[( $tag)]($style)"  #$hash
 commit_hash_length = 7
 only_detached	= false  #Only show git commit hash when in detached HEAD state
 tag_disabled = false
@@ -49,11 +49,11 @@ bisect = "BISECTING"
 am = "AM"	 #A format string displayed when an apply-mailbox (git am) is in progress.
 am_or_rebase = "AM/REBASE"	#A format string displayed when an ambiguous apply-mailbox or rebase is in progress.
 style	= "none"
-format = '[ $state(,$progress_current/$progress_total)]($style)'
+format = '[ $state(,$progress_current/$progress_total)]($style)'
 disabled = false
 
 [git_status] 
-format = '( $ahead_behind$conflicted$staged$deleted$modified$renamed$untracked$stashed)' #       ❲❳ 
+format = '( $ahead_behind$conflicted$staged$deleted$modified$renamed$untracked$stashed)' #       ❲❳ 
 conflicted = "[!${count}](none)"
 ahead = "[${count}](none)"
 behind = "[${count}](none)"
@@ -69,7 +69,7 @@ disabled = false
 [cmd_duration]
 min_time = 500
 style	= "none"
-format = "[( $duration)]($style)"
+format = "[( $duration)]($style)"
 show_milliseconds = true
 #show_notifications = true
 #min_time_to_notify = 2000
