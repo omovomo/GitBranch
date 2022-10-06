@@ -138,11 +138,11 @@ intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
  	// const char *flags[] = {"PCIF_FROMMAIN",
   //                         "PCIF_NONE"};
 
- 	const char *event_types[] = {"KEY_EVENT",
-                               "MOUSE_EVENT",
-                               "WINDOW_BUFFER_SIZE_EVENT",
-                               "MENU_EVENT",
-                               "FOCUS_EVENT"};
+  static const std::unordered_map<WORD,const char*> event_types{{KEY_EVENT, "KEY_EVENT"},
+                               {MOUSE_EVENT, "MOUSE_EVENT"},
+                               {WINDOW_BUFFER_SIZE_EVENT, "WINDOW_BUFFER_SIZE_EVENT"},
+                               {MENU_EVENT, "MENU_EVENT"},
+                               {FOCUS_EVENT, "FOCUS_EVENT"}};
 
   if(KEY_EVENT == Info->Rec.EventType){
     switch (Info->Rec.Event.KeyEvent.wVirtualKeyCode)
@@ -158,7 +158,11 @@ intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
     EnterProcessingDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - EnterProcessingStartTimePoint);
     enter_processed = false;
     PreviousUpdateTimePoint = std::chrono::steady_clock::now() - ForceUpdateTimeout;
-    spdlog::info("ProcessConsoleInputW: CMD Processing END duration:{}ms event type:{}",  EnterProcessingDuration.count(), event_types[Info->Rec.EventType]);
+    if(event_types.contains(Info->Rec.EventType)){
+      spdlog::info("ProcessConsoleInputW: CMD Processing END duration:{}ms event type:{}",  EnterProcessingDuration.count(), event_types.at(Info->Rec.EventType));
+    } else {
+      spdlog::info("ProcessConsoleInputW: CMD Processing END duration:{}ms unknown event type:{}",  EnterProcessingDuration.count(), Info->Rec.EventType);
+    }
   }
 	return 0;
 }

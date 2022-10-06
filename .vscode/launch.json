@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "(Windows) Attach",
+      "type": "cppvsdbg",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "visualizerFile": "${workspaceFolder}/.vscode/dbg/qt5-natvis/qt5.natvis.xml",
+    }
+  ]
+}

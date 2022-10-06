@@ -9,6 +9,7 @@
   "files.associations": {
     "*.log.*": "log",
     "*.mrules": "plaintext",
-    "chrono": "cpp"
+    "chrono": "cpp",
+    "unordered_map": "cpp"
   }
 }
