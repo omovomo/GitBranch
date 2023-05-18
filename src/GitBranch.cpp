@@ -27,7 +27,6 @@ std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 static std::unordered_set<std::wstring> var_names;
 
 std::chrono::milliseconds SynchroFarRequestTimeout{333};
-std::chrono::seconds ForceUpdateTimeout{5};
 
 std::atomic<bool> Running = true;
 
@@ -41,8 +40,6 @@ std::thread Thread;
 
 std::wstring PreviousDir;
 std::wstring PreviousPrompt;
-std::chrono::time_point<std::chrono::steady_clock> PreviousUpdateTimePoint =
-    std::chrono::steady_clock::now();
 
 bool enter_processed{false};
 std::chrono::time_point<std::chrono::steady_clock> EnterProcessingStartTimePoint;    
@@ -132,42 +129,8 @@ void Run() {
   spdlog::info("Plugin thread exit, [Running: {}]", Running.load());
 }
 
-bool Timeout();
 
-intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
- 	// const char *flags[] = {"PCIF_FROMMAIN",
-  //                         "PCIF_NONE"};
-
-  static const std::unordered_map<WORD,const char*> event_types{{KEY_EVENT, "KEY_EVENT"},
-                               {MOUSE_EVENT, "MOUSE_EVENT"},
-                               {WINDOW_BUFFER_SIZE_EVENT, "WINDOW_BUFFER_SIZE_EVENT"},
-                               {MENU_EVENT, "MENU_EVENT"},
-                               {FOCUS_EVENT, "FOCUS_EVENT"}};
-
-  if(KEY_EVENT == Info->Rec.EventType){
-    switch (Info->Rec.Event.KeyEvent.wVirtualKeyCode)
-    {
-    case VK_RETURN:
-      spdlog::info("ProcessConsoleInputW: CMD Processing START...");
-      enter_processed = true;
-      EnterProcessingStartTimePoint = std::chrono::steady_clock::now();
-      return 0;
-    }
-  }
-  if(enter_processed) {
-    EnterProcessingDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - EnterProcessingStartTimePoint);
-    enter_processed = false;
-    PreviousUpdateTimePoint = std::chrono::steady_clock::now() - ForceUpdateTimeout;
-    if(event_types.contains(Info->Rec.EventType)){
-      spdlog::info("ProcessConsoleInputW: CMD Processing END duration:{}ms event type:{}",  EnterProcessingDuration.count(), event_types.at(Info->Rec.EventType));
-    } else {
-      spdlog::info("ProcessConsoleInputW: CMD Processing END duration:{}ms unknown event type:{}",  EnterProcessingDuration.count(), Info->Rec.EventType);
-    }
-  }
-	return 0;
-}
-
-intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
+void UpdateGitInfo(bool force = false){
   //Get current directory
   std::wstring directory;
   if (const size_t length =
@@ -181,7 +144,7 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
     }
   }
 
-  if (PreviousDir != directory /* || Timeout() */) {
+  if (force || PreviousDir != directory) {
     std::wstring sh_vars;
     if (!directory.empty()) {
       std::filesystem::path git_dir = directory;
@@ -189,11 +152,11 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
       if(git_dir_str.find_first_of(' ') != std::string::npos){
         git_dir_str = "\"" + git_dir_str + "\"";
       }
+      spdlog::info("UpdateGitInfo: Force:{} Path:{}", force, git_dir_str);
       auto cmdres = raymii::Command::exec(fmt::format("starship prompt --cmd-duration={} -p {}", EnterProcessingDuration.count(), git_dir_str));
       sh_vars = converter.from_bytes(cmdres.output);
     }
     PreviousDir = directory;
-    PreviousUpdateTimePoint = std::chrono::steady_clock::now();
     if (PreviousPrompt != sh_vars) {
       PreviousPrompt = sh_vars;
       for(auto const&name: var_names){
@@ -218,9 +181,36 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
       PSI.AdvControl(&MainGuid, ACTL_REDRAWALL, 0, nullptr);
     }
   }
-  return 0;
 }
 
-bool Timeout() {
-  return std::chrono::steady_clock::now() - PreviousUpdateTimePoint > ForceUpdateTimeout;
+intptr_t WINAPI ProcessConsoleInputW( struct ProcessConsoleInputInfo *Info ) {
+ 	// const char *flags[] = {"PCIF_FROMMAIN",
+  //                         "PCIF_NONE"};
+
+  static const std::unordered_map<WORD,const char*> event_types{{KEY_EVENT, "KEY_EVENT"},
+                               {MOUSE_EVENT, "MOUSE_EVENT"},
+                               {WINDOW_BUFFER_SIZE_EVENT, "WINDOW_BUFFER_SIZE_EVENT"},
+                               {MENU_EVENT, "MENU_EVENT"},
+                               {FOCUS_EVENT, "FOCUS_EVENT"}};
+
+  if(KEY_EVENT == Info->Rec.EventType){
+    switch (Info->Rec.Event.KeyEvent.wVirtualKeyCode)
+    {
+    case VK_RETURN:
+      enter_processed = true;
+      EnterProcessingStartTimePoint = std::chrono::steady_clock::now();
+      return 0;
+    }
+  }
+  if(enter_processed) {
+    EnterProcessingDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - EnterProcessingStartTimePoint);
+    enter_processed = false;
+    UpdateGitInfo(true);
+  }
+	return 0;
+}
+
+intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
+  UpdateGitInfo();
+  return 0;
 }
