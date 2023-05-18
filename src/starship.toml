@@ -10,12 +10,14 @@ SH_G_STATE=${git_state}
 SH_G_STATUS=${git_status}
 SH_CMD_DURATION=${cmd_duration}"""
 
+command_timeout = 2500
+
 [directory]
 format = '[($read_only)]($read_only_style)'
 #format = '[($read_only)]($read_only_style)[$path]($style)'
 truncate_to_repo = true
 truncation_length = 0
-repo_root_format = "[$repo_root]($style)"
+repo_root_format = "[$repo_root]($style)"
 read_only	= " "
 truncation_symbol = "…/"
 repo_root_style = "none"

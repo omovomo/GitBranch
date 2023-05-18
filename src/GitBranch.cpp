@@ -181,7 +181,7 @@ intptr_t WINAPI ProcessSynchroEventW(const struct ProcessSynchroEventInfo *) {
     }
   }
 
-  if (PreviousDir != directory || Timeout()) {
+  if (PreviousDir != directory /* || Timeout() */) {
     std::wstring sh_vars;
     if (!directory.empty()) {
       std::filesystem::path git_dir = directory;
